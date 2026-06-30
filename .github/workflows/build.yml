@@ -1,0 +1,63 @@
+name: build
+
+# Runs in the PUBLIC repo (free unlimited Actions). Checks out the PRIVATE code repo with a
+# read-only token (secret CODE_TOKEN), builds, and publishes releases to THIS repo via the
+# built-in GITHUB_TOKEN (same-repo = free, no extra token for publishing).
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or tag of the private code repo to build"
+        default: main
+
+permissions:
+  contents: write
+
+jobs:
+  # Windows + macOS arm64 — carry the auto-update feeds (latest.yml / latest-mac.yml)
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: shah-51/whatsapp-report-sender
+          ref: ${{ inputs.ref }}
+          token: ${{ secrets.CODE_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npx puppeteer browsers install chrome
+      - name: Build and publish
+        run: npx electron-builder --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+  # macOS Intel (x64) — native build on an Intel runner, attached as a download (no auto-update feed)
+  mac-x64:
+    needs: release
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: shah-51/whatsapp-report-sender
+          ref: ${{ inputs.ref }}
+          token: ${{ secrets.CODE_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npx puppeteer browsers install chrome
+      - name: Build x64 (no publish)
+        run: npx electron-builder --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - name: Attach x64 dmg to the release
+        run: gh release upload "v$(node -p "require('./package.json').version")" dist/*.dmg --repo shah-51/report-sender --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
