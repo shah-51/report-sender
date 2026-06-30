@@ -1,6 +1,6 @@
 # Report Sender
 
-### 👉 [**Download it here**](https://shah-51.github.io/report-sender/) — one click, picks the right file for your computer.
+### 👉 [**Download the latest version**](https://github.com/shah-51/report-sender/releases/latest) · pick the file for your computer (see the table below)
 
 A small desktop app that captures a range from a Google Sheet as an image and posts it to a
 WhatsApp group — on demand or on a daily / weekly / monthly schedule. Runs entirely on your own
